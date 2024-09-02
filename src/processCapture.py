@@ -119,7 +119,7 @@ class CaptureThread(threading.Thread):
 class LoginApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Login")
+        self.root.title("Login bGames")
         self.root.geometry("300x200")
         self.user_id = None
         self.productive_apps = {}  # Aquí se almacenará la lista de aplicaciones productivas obtenidas del servidor
@@ -185,9 +185,9 @@ class LoginApp:
     
     def open_main_app(self):
         main_app_window = tk.Toplevel(self.root)
-        main_app_window.title("Main App")
+        main_app_window.title("Process Activity Sensor")
         
-        self.label_info = tk.Label(main_app_window, text=f"Capturando actividades del sistema... (UserID: {self.user_id})")
+        self.label_info = tk.Label(main_app_window, text=f"Capturando actividades del sistema...")
         self.label_info.pack()
         
         self.listbox_activities = tk.Listbox(main_app_window)
