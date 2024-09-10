@@ -1,5 +1,5 @@
 # ProcessActivitySensor
-Sensor de detección de aplicaciones de interés dentro los procesos activos en el sistema.
+Application detection sensor within active system processes. This is done with the goal of monitoring the use of productive desktop applications and awarding points for a determined usage time, associating them with the player's bGames profile.
 
 ## Prerequisites
 * ### **Python**
@@ -12,5 +12,5 @@ Sensor de detección de aplicaciones de interés dentro los procesos activos en 
 ## Run with Python
 To run the sensor, use the following command in the console within the file directory:
 ```shell
-python udemySensor.py
+python processCapture.py
 ```
