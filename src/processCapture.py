@@ -1,10 +1,23 @@
 import requests
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 import threading
 import psutil
 import time
 from datetime import datetime
+import json
+import os
+from dotenv import load_dotenv
+
+# Cargar las variables de entorno desde el archivo .env
+load_dotenv()
+
+# Configuración de las variables de entorno
+API_URL_PLAYER = os.getenv("API_URL_PLAYER")
+API_URL_PRODUCTIVE_APPS = os.getenv("API_URL_PRODUCTIVE_APPS")
+API_URL_SEND_POINTS = os.getenv("API_URL_SEND_POINTS")
+API_URL_GET_POINTS = os.getenv("API_URL_GET_POINTS")
+API_URL_POST_POINTS = os.getenv("API_URL_POST_POINTS")
 
 class CaptureThread(threading.Thread):
     RUNNING_STATUS = 1
@@ -24,7 +37,7 @@ class CaptureThread(threading.Thread):
         self.productive_time = {app: 0 for app in self.productive_apps}
         self.points = {app: 0 for app in self.productive_apps}
         self.captured_activities = []
-        self.sensor_endpoint_id = "7"
+        self.sensor_endpoint_id = str(os.getenv("SENSOR_ENDPOINT_ID"))  # Cargar el sensor_endpoint_id del .env
     
     def set_status(self, status):
         if status == self.PAUSED_STATUS:
@@ -64,7 +77,7 @@ class CaptureThread(threading.Thread):
                     running_apps[app_name] = True
                     if self.process_start_times[app_name] is None:
                         self.process_start_times[app_name] = current_time
-                        if app_name not in self.captured_activities:  # Asegúrate de no agregar duplicados
+                        if app_name not in self.captured_activities:  # No agregar duplicados
                             self.captured_activities.append(app_name)  # Añadir actividad capturada
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
@@ -82,7 +95,7 @@ class CaptureThread(threading.Thread):
 
     def award_points(self):
         for app, time_spent in self.productive_time.items():
-            new_points = int(time_spent // 60) - self.points[app]  # Puntos nuevos desde la última vez (puntos cada 60 segundos (1 min.))
+            new_points = int(time_spent // 10) - self.points[app]  # Puntos nuevos desde la última vez (puntos cada 60 segundos (1 min.))
             if new_points > 0:
                 self.points[app] += new_points
                 self.send_points_to_server(new_points)
@@ -97,7 +110,7 @@ class CaptureThread(threading.Thread):
         try:
             response = requests.post(url, json=data)
             if response.status_code == 200:
-                print(f"Puntos enviados exitosamente: {total_points}")
+                print(f"Points sent successfully {total_points}")
             else:
                 messagebox.showerror("Error", f"Failed to send points: {response.status_code} - {response.text}")
         except Exception as e:
@@ -120,28 +133,39 @@ class LoginApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Login bGames")
-        self.root.geometry("300x200")
-        self.user_id = None
-        self.productive_apps = {}  # Aquí se almacenará la lista de aplicaciones productivas obtenidas del servidor
-        self.create_login_widgets()
-        self.capture_thread = None
+        self.root.geometry("350x300")
+        self.root.configure(bg="#f0f0f0")  # Fondo claro
+        self.root.resizable(False, False)
+        self.style = ttk.Style()
+        self.style.configure("TButton", background="#007BFF", foreground="#ffffff", font=("Helvetica", 12), padding=10)
+        self.style.configure("TLabel", background="#f0f0f0", font=("Helvetica", 11))
+        self.style.configure("TEntry", font=("Helvetica", 11))
 
-    def create_login_widgets(self):
-        self.label_username = tk.Label(self.root, text="Username")
-        self.label_username.pack(pady=10)
-        
-        self.entry_username = tk.Entry(self.root, width=30)
-        self.entry_username.pack(pady=5)
-        
-        self.label_password = tk.Label(self.root, text="Password")
-        self.label_password.pack(pady=10)
-        
-        self.entry_password = tk.Entry(self.root, show="*", width=30)
-        self.entry_password.pack(pady=5)
-        
-        self.button_login = tk.Button(self.root, text="Login", command=self.login, width=10)
+        self.user_id = None
+        self.productive_apps = {}
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        # Encabezado
+        header = ttk.Label(self.root, text="Login", font=("Helvetica", 16, "bold"), background="#f0f0f0")
+        header.pack(pady=20)
+
+        # Campo de Usuario
+        ttk.Label(self.root, text="Username:").pack(padx=20, pady=5)
+        self.entry_username = ttk.Entry(self.root, width=30)
+        self.entry_username.pack(padx=20, pady=5)
+
+        # Campo de Contraseña
+        ttk.Label(self.root, text="Password:").pack(padx=20, pady=5)
+        self.entry_password = ttk.Entry(self.root, show="*", width=30)
+        self.entry_password.pack(padx=20, pady=5)
+
+        # Botón de Iniciar Sesión
+                # Botón de Iniciar Sesión
+        self.button_login = tk.Button(self.root, text="Login", bg="#007BFF", fg="white", font=("Helvetica", 12), command=self.login)
         self.button_login.pack(pady=20)
-        
+
     def login(self):
         username = self.entry_username.get()
         password = self.entry_password.get()
@@ -162,7 +186,7 @@ class LoginApp:
     
     def authenticate_user(self, username, password):
         try:
-            response = requests.get(f"http://localhost:3010/player/{username}/{password}")
+            response = requests.get(f"{API_URL_PLAYER}/{username}/{password}")
             if response.status_code == 200:
                 return response.json()  # Asume que el servidor devuelve solo el userID
             else:
@@ -174,7 +198,7 @@ class LoginApp:
     
     def load_productive_apps(self):
         try:
-            response = requests.get("http://localhost:5001/productive_apps")
+            response = requests.get(API_URL_PRODUCTIVE_APPS)
             if response.status_code == 200:
                 self.productive_apps = response.json()
             else:
@@ -182,22 +206,22 @@ class LoginApp:
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while loading productive apps: {e}")
 
-    
     def open_main_app(self):
         main_app_window = tk.Toplevel(self.root)
-        main_app_window.title("Process Activity Sensor")
-        
-        self.label_info = tk.Label(main_app_window, text=f"Capturando actividades del sistema...")
-        self.label_info.pack()
-        
-        self.listbox_activities = tk.Listbox(main_app_window)
-        self.listbox_activities.pack(fill=tk.BOTH, expand=True)
-        
+        main_app_window.title("Activity Monitor")
+        main_app_window.geometry("400x400")
+        main_app_window.configure(bg="#f4f4f4")
+
+        ttk.Label(main_app_window, text="Activities running", font=("Helvetica", 14, "bold")).pack(pady=10)
+        self.listbox_activities = tk.Listbox(main_app_window, font=("Helvetica", 11), bg="#ffffff", relief="flat")
+        self.listbox_activities.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
         # Inicia el hilo de captura pasándole las aplicaciones productivas y sus nombres amigables
         self.capture_thread = CaptureThread(self.user_id, CaptureThread.RUNNING_STATUS, 0.2, self.productive_apps)
         self.capture_thread.start()
         
         self.update_activity_list()
+
         main_app_window.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def update_activity_list(self):
