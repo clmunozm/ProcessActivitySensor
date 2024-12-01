@@ -1,6 +1,7 @@
 import requests
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkinter import PhotoImage
 import threading
 import psutil
 import time
@@ -141,6 +142,10 @@ class LoginApp:
         self.style.configure("TLabel", background="#f0f0f0", font=("Helvetica", 11))
         self.style.configure("TEntry", font=("Helvetica", 11))
 
+        # Agregar ícono
+        icon_image = PhotoImage(file='icon.png')  # Usa la ruta a tu icono
+        root.iconphoto(True, icon_image)
+        
         self.user_id = None
         self.productive_apps = {}
 
